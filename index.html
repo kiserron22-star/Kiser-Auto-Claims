@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kiser Auto Claim V1</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<aside>
+  <h1>KISER <span>AUTO CLAIM</span></h1>
+  <small>WORKING V1</small>
+  <nav>Dashboard<br>Note Analyzer<br>Review Queue<br>Audit Log</nav>
+</aside>
+<main>
+<header>
+  <input id="patient" placeholder="Synthetic encounter ID">
+  <button id="analyze">ANALYZE NOTE</button>
+</header>
+
+<div class="banner">SYNTHETIC / TEST DATA ONLY — DO NOT ENTER REAL PATIENT INFORMATION.</div>
+
+<div class="cards">
+  <div class="good">Suggested codes<strong id="count">0</strong></div>
+  <div>Avg confidence<strong id="avg">—</strong></div>
+  <div class="warn">Needs review<strong id="review">0</strong></div>
+  <div class="bad">Warnings<strong id="warnings">0</strong></div>
+</div>
+
+<div class="workspace">
+<section class="panel">
+  <h2>Clinical Note</h2>
+  <textarea id="note" placeholder="Paste the synthetic doctor's note here..."></textarea>
+  <div class="actions">
+    <button id="sample">LOAD SAMPLE NOTE</button>
+    <button id="clear" class="secondary">CLEAR</button>
+  </div>
+</section>
+<section class="panel">
+  <h2>Analyzer Output</h2>
+  <div id="status" class="status">Ready.</div>
+  <div id="results"></div>
+</section>
+</div>
+</main>
+<script src="analyzer.js"></script>
+</body>
+</html>
