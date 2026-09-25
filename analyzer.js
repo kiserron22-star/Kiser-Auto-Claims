@@ -1,12 +1,11 @@
 (() => {
   "use strict";
 
-  // ============================================================
+  const API_BASE_URL = "https://kiser-auto-claims-api.onrender.com";
+  const ANALYZE_API_URL = `${API_BASE_URL}/api/analyze`;
+
+  // ==========================================
   // KISER AUTO CLAIM
-  // V3 TEST ANALYZER
-  // SYNTHETIC / TEST DATA ONLY
-  // NOT FOR REAL PATIENT CLAIMS
-  // ============================================================
 
   const $ = (id) => document.getElementById(id);
 
