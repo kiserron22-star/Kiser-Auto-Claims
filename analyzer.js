@@ -3,15 +3,12 @@
 
   // ============================================================
   // KISER AUTO CLAIM
-  // V2 TEST ANALYZER
+  // V3 TEST ANALYZER
   // SYNTHETIC / TEST DATA ONLY
+  // NOT FOR REAL PATIENT CLAIMS
   // ============================================================
 
   const $ = (id) => document.getElementById(id);
-
-  // ------------------------------------------------------------
-  // SYNTHETIC TEST DOCTOR NOTE
-  // ------------------------------------------------------------
 
   const sample = `SYNTHETIC TEST PATIENT — NOT A REAL PATIENT
 
@@ -20,11 +17,8 @@ Visit Type: Established Patient Office Visit
 History:
 Patient presents for follow-up of type 2 diabetes
 and essential hypertension.
-
 HbA1c is 8.2%. Diabetes is above treatment goal.
-
 Blood pressure today is 148/92 mmHg.
-
 Patient also reports persistent right knee pain.
 
 Assessment:
@@ -36,111 +30,432 @@ Plan:
 Continue medications.
 Referral to physical therapy for right knee pain.`;
 
-  // ------------------------------------------------------------
-  // LOCAL TEST CODING ENGINE
-  // ------------------------------------------------------------
+  // ============================================================
+  // TEST RULES
+  // ============================================================
+
+  const codingRules = [
+    {
+      system: "ICD-10-CM",
+      code: "E11.65",
+      description: "Type 2 diabetes mellitus with hyperglycemia",
+      required: ["type 2 diabetes", "hyperglycemia"]
+    },
+    {
+      system: "ICD-10-CM",
+      code: "I10",
+      description: "Essential (primary) hypertension",
+      any: [
+        "essential hypertension",
+        "primary hypertension"
+      ]
+    },
+    {
+      system: "ICD-10-CM",
+      code: "M17.11",
+      description:
+        "Unilateral primary osteoarthritis, right knee",
+      required: ["osteoarthritis", "right knee"]
+    },
+    {
+      system: "ICD-10-CM",
+      code: "J45.909",
+      description:
+        "Unspecified asthma, uncomplicated",
+      any: ["asthma"]
+    },
+    {
+      system: "ICD-10-CM",
+      code: "E78.5",
+      description:
+        "Hyperlipidemia, unspecified",
+      any: [
+        "hyperlipidemia",
+        "high cholesterol"
+      ]
+    },
+    {
+      system: "ICD-10-CM",
+      code: "K21.9",
+      description:
+        "Gastro-esophageal reflux disease without esophagitis",
+      any: [
+        "gastroesophageal reflux disease",
+        "gerd"
+      ]
+    }
+  ];
+
+  // ============================================================
+  // FIND SUPPORTING TEXT
+  // ============================================================
+
+  function findEvidence(note, phrases) {
+    const lines = note
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const matches = lines.filter((line) => {
+      const lower = line.toLowerCase();
+
+      return phrases.some((phrase) =>
+        lower.includes(phrase.toLowerCase())
+      );
+    });
+
+    return matches.slice(0, 3);
+  }
+
+  // ============================================================
+  // TEST CODING ENGINE
+  // ============================================================
 
   function analyzeLocally(note) {
     const text = note.toLowerCase();
+
     const results = [];
 
-    // Type 2 diabetes with hyperglycemia
-    if (
-      text.includes("type 2 diabetes") &&
-      text.includes("hyperglycemia")
-    ) {
-      results.push({
-        system: "ICD-10-CM",
-        code: "E11.65",
-        description:
-          "Type 2 diabetes mellitus with hyperglycemia",
-        confidence: 96
-      });
-    }
+    codingRules.forEach((rule) => {
+      let matched = false;
+      let phrases = [];
 
-    // Essential hypertension
-    if (
-      text.includes("essential hypertension") ||
-      text.includes("primary hypertension")
-    ) {
-      results.push({
-        system: "ICD-10-CM",
-        code: "I10",
-        description:
-          "Essential (primary) hypertension",
-        confidence: 95
-      });
-    }
+      if (rule.required) {
+        matched = rule.required.every((phrase) =>
+          text.includes(phrase)
+        );
 
-    // Primary osteoarthritis — right knee
-    if (
-      text.includes("osteoarthritis") &&
-      text.includes("right knee")
-    ) {
+        phrases = rule.required;
+      }
+
+      if (rule.any) {
+        const found = rule.any.filter((phrase) =>
+          text.includes(phrase)
+        );
+
+        matched = found.length > 0;
+        phrases = found;
+      }
+
+      if (!matched) return;
+
+      const evidence = findEvidence(
+        note,
+        phrases
+      );
+
       results.push({
-        system: "ICD-10-CM",
-        code: "M17.11",
-        description:
-          "Unilateral primary osteoarthritis, right knee",
-        confidence: 94
+        system: rule.system,
+        code: rule.code,
+        description: rule.description,
+
+        // TEST SCORE ONLY.
+        // This is NOT a validated probability.
+        confidence: 95,
+
+        evidence:
+          evidence.length > 0
+            ? evidence
+            : ["Matching documentation detected."],
+
+        reviewRequired: false
       });
-    }
+    });
 
     return results;
   }
 
-  // ------------------------------------------------------------
+  // ============================================================
   // DISPLAY RESULTS
-  // ------------------------------------------------------------
+  // ============================================================
 
   function showResults(results) {
     const resultsBox = $("results");
 
-    if (!resultsBox) {
-      console.error(
-        'Kiser Auto Claim: Could not find element with id="results".'
-      );
-      return;
-    }
+    if (!resultsBox) return;
 
     if (results.length === 0) {
       resultsBox.innerHTML = `
         <div class="result">
-          <strong>MANUAL REVIEW REQUIRED</strong><br>
-          No supported test codes were detected.
+          <strong>MANUAL REVIEW REQUIRED</strong><br><br>
+
+          No supported test rule matched this documentation.
+
+          <br><br>
+
+          <small>
+            Kiser Auto Claim did not guess a code.
+          </small>
         </div>
       `;
+
       return;
     }
 
     resultsBox.innerHTML = results
-      .map(
-        (item) => `
+      .map((item) => {
+
+        const evidenceHTML = item.evidence
+          .map(
+            (line) =>
+              `<li>${escapeHTML(line)}</li>`
+          )
+          .join("");
+
+        return `
           <div class="result">
-            <strong>${item.code}</strong><br>
-            ${item.description}<br>
+
+            <strong>
+              ${escapeHTML(item.code)}
+            </strong>
+
+            <br>
+
+            ${escapeHTML(item.description)}
+
+            <br><br>
+
             <small>
-              ${item.system} — Confidence: ${item.confidence}%
+              ${escapeHTML(item.system)}
+              — Test Match Score:
+              ${item.confidence}%
             </small>
+
+            <br><br>
+
+            <strong>
+              Documentation Evidence
+            </strong>
+
+            <ul>
+              ${evidenceHTML}
+            </ul>
+
+            <small>
+              Review Status:
+              ${
+                item.reviewRequired
+                  ? "REVIEW REQUIRED"
+                  : "TEST RULE MATCHED"
+              }
+            </small>
+
           </div>
-        `
-      )
+        `;
+      })
       .join("");
   }
 
-  // ------------------------------------------------------------
-  // UPDATE DASHBOARD SUMMARY
-  // ------------------------------------------------------------
+  // ============================================================
+  // BASIC HTML PROTECTION
+  // ============================================================
+
+  function escapeHTML(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  // ============================================================
+  // DASHBOARD SUMMARY
+  // ============================================================
 
   function updateSummary(results) {
     const average =
       results.length > 0
         ? Math.round(
             results.reduce(
-              (sum, item) => sum + item.confidence,
+              (sum, item) =>
+                sum + item.confidence,
               0
             ) / results.length
           )
         : 0;
 
-    const reviewCount = results.filter
+    const reviewCount =
+      results.filter(
+        (item) => item.reviewRequired
+      ).length;
+
+    if ($("count")) {
+      $("count").textContent =
+        results.length;
+    }
+
+    if ($("avg")) {
+      $("avg").textContent =
+        average + "%";
+    }
+
+    if ($("review")) {
+      $("review").textContent =
+        reviewCount;
+    }
+
+    if ($("warnings")) {
+      $("warnings").textContent =
+        results.length === 0 ? "1" : "0";
+    }
+  }
+
+  // ============================================================
+  // LOAD SAMPLE
+  // ============================================================
+
+  function loadSample() {
+    const noteBox = $("note");
+
+    if (!noteBox) {
+      alert(
+        "Could not find the Clinical Note box."
+      );
+      return;
+    }
+
+    noteBox.value = sample;
+    noteBox.focus();
+
+    if ($("status")) {
+      $("status").textContent =
+        "Sample loaded. Press ANALYZE NOTE.";
+    }
+  }
+
+  // ============================================================
+  // CLEAR
+  // ============================================================
+
+  function clearAll() {
+    if ($("note")) {
+      $("note").value = "";
+    }
+
+    if ($("results")) {
+      $("results").innerHTML = "";
+    }
+
+    updateSummary([]);
+
+    if ($("warnings")) {
+      $("warnings").textContent = "0";
+    }
+
+    if ($("status")) {
+      $("status").textContent =
+        "Ready.";
+    }
+  }
+
+  // ============================================================
+  // ANALYZE
+  // ============================================================
+
+  function runAnalyzer() {
+    const noteBox = $("note");
+
+    if (
+      !noteBox ||
+      !noteBox.value.trim()
+    ) {
+      if ($("status")) {
+        $("status").textContent =
+          "Load or enter a synthetic note first.";
+      }
+
+      return;
+    }
+
+    if ($("status")) {
+      $("status").textContent =
+        "Analyzing synthetic test note...";
+    }
+
+    try {
+      const results =
+        analyzeLocally(
+          noteBox.value
+        );
+
+      showResults(results);
+      updateSummary(results);
+
+      if ($("status")) {
+        $("status").textContent =
+          results.length > 0
+            ? `Analysis complete — ${results.length} test code(s) suggested.`
+            : "No supported code found — review required.";
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Kiser Auto Claim error:",
+        error
+      );
+
+      if ($("status")) {
+        $("status").textContent =
+          "Analyzer error.";
+      }
+    }
+  }
+
+  // ============================================================
+  // START APPLICATION
+  // ============================================================
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+      const sampleButton =
+        $("sample");
+
+      const clearButton =
+        $("clear");
+
+      const analyzeButton =
+        $("analyze");
+
+      if (sampleButton) {
+        sampleButton.addEventListener(
+          "click",
+          loadSample
+        );
+      }
+
+      if (clearButton) {
+        clearButton.addEventListener(
+          "click",
+          clearAll
+        );
+      }
+
+      if (analyzeButton) {
+        analyzeButton.addEventListener(
+          "click",
+          runAnalyzer
+        );
+      }
+
+      updateSummary([]);
+
+      if ($("warnings")) {
+        $("warnings").textContent = "0";
+      }
+
+      if ($("status")) {
+        $("status").textContent =
+          "Ready.";
+      }
+
+      console.log(
+        "Kiser Auto Claim V3 loaded."
+      );
+    }
+  );
+
+})();
