@@ -82,7 +82,16 @@ Referral to physical therapy for right knee pain.`;
         "gastroesophageal reflux disease",
         "gerd"
       ]
-    }
+    },{
+  system: "ICD-10-CM",
+  code: "M54.50",
+  description: "Low back pain, unspecified",
+  any: [
+    "low back pain",
+    "lower back pain",
+    "lumbar pain"
+  ]
+  }
   ];
 
   // ============================================================
