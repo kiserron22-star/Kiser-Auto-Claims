@@ -96,23 +96,42 @@ Referral to physical therapy for right knee pain.`;
 
   // ============================================================
   // FIND SUPPORTING TEXT
-  // ============================================================
+  // 
 
   function findEvidence(note, phrases) {
-    const lines = note
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
+  const lines = note
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
 
-    const matches = lines.filter((line) => {
-      const lower = line.toLowerCase();
+  const negativeWords = [
+    "denies",
+    "denied",
+    "no evidence of",
+    "no history of",
+    "negative for",
+    "without",
+    "ruled out",
+    "rule out"
+  ];
 
-      return phrases.some((phrase) =>
-        lower.includes(phrase.toLowerCase())
-      );
-    });
+  const matches = lines.filter((line) => {
+    const lower = line.toLowerCase();
 
-    return matches.slice(0, 3);
+    const hasPhrase = phrases.some((phrase) =>
+      lower.includes(phrase.toLowerCase())
+    );
+
+    if (!hasPhrase) return false;
+
+    const isNegative = negativeWords.some((word) =>
+      lower.includes(word)
+    );
+
+    return !isNegative;
+  });
+
+  return matches.slice(0, 3);
   }
 
   // ============================================================
