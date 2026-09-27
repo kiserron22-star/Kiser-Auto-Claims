@@ -5,7 +5,7 @@
   const ANALYZE_API_URL = `${API_BASE_URL}/api/analyze`;
 
   // ==========================================
-  // KISER AUTO CLAIM
+  // KISER HEALTH REVENUE
 
   const $ = (id) => document.getElementById(id);
 
@@ -211,7 +211,7 @@ if (evidence.length === 0) return;
           <br><br>
 
           <small>
-            Kiser Auto Claim did not guess a code.
+            Kiser Health Revenue did not guess a code.
           </small>
         </div>
       `;
@@ -419,7 +419,7 @@ if (evidence.length === 0) return;
     } catch (error) {
 
       console.error(
-        "Kiser Auto Claim error:",
+        "Kiser Health Revenue error:",
         error
       );
 
