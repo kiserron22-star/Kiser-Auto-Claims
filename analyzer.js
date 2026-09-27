@@ -480,7 +480,7 @@ Referral to physical therapy for right knee pain.`;
       }
 
       console.log(
-        "Kiser Auto Claim V3 loaded."
+        "Kiser Health Revenue V5 loaded."
       );
     }
   );
