@@ -170,7 +170,7 @@ Referral to physical therapy for right knee pain.`;
         note,
         phrases
       );
-
+if (evidence.length === 0) return;
       results.push({
         system: rule.system,
         code: rule.code,
